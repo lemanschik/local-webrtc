@@ -1,4 +1,4 @@
-
+// This is designed to get runned inside 
 const send = (target, msg) => void target.postMessage(JSON.parse(JSON.stringify(msg)), '*');
 const log = str => void console.log(`[${polite ? 'POLITE' : 'IMPOLITE'}] ${str}`);
 const assert_equals = window.assert_equals ||
@@ -20,7 +20,7 @@ pull(c){c.enqueue(this.pc)}}).pipeThrough(new TransformStream({async transform(c
   const broadcastChannel = new BroadcastChannel(peerIdentity);
   const streamChannel = new BroadcastChannel(peerIdentity);
   
-  const network = { makingOffer: false, ignoreOffer: false, srdAnswerPending: false };
+  const network = { makingOffer: false, ignoreOffer: false, srdAnswerPending: false, polite: false };
   
   const messageHandler = {
     async protocol({id,method,params,result:{value,done}}){
@@ -29,7 +29,7 @@ pull(c){c.enqueue(this.pc)}}).pipeThrough(new TransformStream({async transform(c
         c.enqueue({ protocol: { sessionId: peerIdentity, id: crypto.createRANDOMUUID(), method: "peerConnection.createDataChannel", params: [] } });
     },
     async ['peerConnection.ondescription'](description){ // onsignal;
-      if (network.ignoreOffer = description.type === 'offer' && !polite && (
+      if (network.ignoreOffer = description.type === 'offer' && !network.polite && (
         makingOffer || !(peerConnection.signalingState === 'stable' ||
        (peerConnection.signalingState === 'have-local-offer' && network.srdAnswerPending)))
       ){ return broadcastChannel.postMessage({method: "peerconnection.ondescription",
@@ -42,6 +42,7 @@ pull(c){c.enqueue(this.pc)}}).pipeThrough(new TransformStream({async transform(c
           assert_equals(peerConnection.remoteDescription.type, 'answer', 'peerConnection.setRemoteDescription answer');
           assert_equals(peerConnection.signalingState, 'stable', 'peerConnection.setRemoteDescription answered successfull');
           broadcastChannel.postMessage({method: "peerConnection.setRemoteDescription", params: [{ description }] });
+          network.polite = true;
           peerConnection.dispatchEvent(new Event('negotiated')); // negotiated: true || 'Web';
         } else { // negotiated: 'Web' // not auto negotiated.
           assert_equals(peerConnection.signalingState, 'have-remote-offer', 'Remote offer');
