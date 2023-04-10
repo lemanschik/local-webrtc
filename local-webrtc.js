@@ -15,6 +15,7 @@ export const localWebRTC = async () => {
 new ReadableStream({ 
 start(c){this.pc=new RTCPeerConnection();c.enqueue(this.pc)},
 pull(c){c.enqueue(this.pc)}}).pipeThrough(new TransformStream({async transform(c,peerConnection){
+  const peerConnection = new RTCPeerConnection();
   await peerConnection.setLocalDescription();
   const peerIdentity = getSessionDescription(peerConnection)[1];
   const broadcastChannel = new BroadcastChannel(peerIdentity);
