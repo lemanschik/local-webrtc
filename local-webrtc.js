@@ -8,14 +8,12 @@ export const getSessionDescription = ({localDescription:{sdp}}) => sdp.slice(sdp
   //const [,peerIdentity,version] = getSessionDescription(peerConnection);
 
 export const localWebRTC = async () => {
-  const peerConnection = await new RTCPeerConnection();
+  const peerConnection = await new RTCPeerConnection(globalThis.crypto.randomUUID());
   return { peerConnection, broadcastChannel, peerIdentity: getSessionDescription(peerConnection)[0] };
 };
 
-new ReadableStream({ 
-start(c){this.pc=new RTCPeerConnection();c.enqueue(this.pc)},
-pull(c){c.enqueue(this.pc)}}).pipeThrough(new TransformStream({async transform(c,peerConnection){
-  const peerConnection = new RTCPeerConnection();
+new ReadableStream({start(c){c.enqueue(new RTCPeerConnection(globalThis.crypto.randomUUID()))}})
+  .pipeThrough(new TransformStream({async transform(c,peerConnection){
   await peerConnection.setLocalDescription();
   const peerIdentity = getSessionDescription(peerConnection)[1];
   const broadcastChannel = new BroadcastChannel(peerIdentity);
