@@ -2,10 +2,13 @@
 ((browser) => {
   let confirmDialog = null;
   let errorDialog = null;
+  const extPanel = {};
   let main = null;
   let mainInnerHTML = '';
+  
+  
   const mainEmptyHTML = '<span>🫙</span> Origin Private File System is empty.';
-
+  
   let interval = null;
 
   let lastLength = 0;
@@ -18,7 +21,32 @@
     }`;
   };
 
-  const createTreeHTML = (structure, container) => {
+  /** listen for deleteSpan clicks 
+  
+          deleteSpan.addEventListener('click', (event) => {
+            confirmDialog.querySelector('span').textContent = 'directory';
+            confirmDialog.querySelector('code').textContent = key;
+            confirmDialog.addEventListener(
+              'close', (event) => {
+                confirmDialog.returnValue === 'delete' &&
+                  browser.tabs.sendMessage(
+                    browser.devtools.inspectedWindow.tabId,
+                    { message: 'deleteDirectory', data: value.relativePath, }, 
+                    ({ error }) => error 
+                    ? (errorDialog.querySelector('p').textContent = error) && errorDialog.showModal() 
+                    : div.remove(),
+                  );
+              },
+              { once: true },
+            );
+            confirmDialog.showModal();
+          });
+
+  
+  
+  */
+  
+  const createTreeHTML = (structure, div, doc) => {
     const entries = Object.entries(structure);
     // Sort entries by name and kind.
     entries
@@ -32,89 +60,32 @@
       });
     for (const [key, value] of entries) {
       if (value.kind === 'directory') {
-        const details = document.createElement('details');
-        container.append(details);
-        const summary = document.createElement('summary');
-        summary.classList.add('directory');
-        details.append(summary);
-        if (value.relativePath === '.') {
-          details.open = true;
-          details.classList.add('root');
-          summary.textContent = ' ';
-        } else {
-          const directoryNameSpan = document.createElement('span');
-          directoryNameSpan.textContent = key;
-          const deleteSpan = document.createElement('span');
-          deleteSpan.textContent = '🗑️';
-          deleteSpan.classList.add('delete');
-          deleteSpan.addEventListener('click', (event) => {
-            confirmDialog.querySelector('span').textContent = 'directory';
-            confirmDialog.querySelector('code').textContent = key;
-            confirmDialog.addEventListener(
-              'close',
-              (event) => {
-                if (confirmDialog.returnValue === 'delete') {
-                  browser.tabs.sendMessage(
-                    browser.devtools.inspectedWindow.tabId,
-                    {
-                      message: 'deleteDirectory',
-                      data: value.relativePath,
-                    },
-                    (response) => {
-                      if (response.error) {
-                        errorDialog.querySelector('p').textContent =
-                          response.error;
-                        return errorDialog.showModal();
-                      }
-                      div.remove();
-                    },
-                  );
-                }
-              },
-              { once: true },
-            );
-            confirmDialog.showModal();
-          });
-          summary.append(directoryNameSpan, deleteSpan);
-        }
-        const div = document.createElement('div');
-        details.append(div);
-        createTreeHTML(value.entries, div);
+        doc.write(`<details ${value.relativePath === '.' ? 'open="true" class="root"' : ''}`><summary class="directory">${value.relativePath === '.' ? ' ' : '<span class="directory-name">${key}</span><span class="delete">🗑️</span></div><div>'}`)
+        
+        createTreeHTML(value.entries, div, doc);
       } else if (value.kind === 'file') {
-        const div = document.createElement('div');
-        div.classList.add('file');
-        div.tabIndex = 0;
-        div.title = `Type: ${
+        
+         doc.write(
+        `<div class="file" data-key="${key}" data-relativ-path="${value.relativPath}" data-type="${value.type}" tab-index="0" title="${`Type: ${
           value.type || 'Unknown'
-        } - Last modified: ${new Date(value.lastModified).toLocaleString()}`;
-        container.append(div);
-        const fileNameSpan = document.createElement('span');
-        fileNameSpan.textContent = key;
+        } - Last modified: ${new Date(value.lastModified).toLocaleString()}`}"><span class="file">${key}</span><span class="size">${readableSize(value.size)}</span><span class="delete">🗑️</span>  `;
+        
+      
         fileNameSpan.addEventListener('click', (event) => {
           browser.tabs.sendMessage(browser.devtools.inspectedWindow.tabId, {
             message: 'saveFile',
             data: value.relativePath,
           });
         });
-        const sizeSpan = document.createElement('span');
-        sizeSpan.classList.add('size');
-        sizeSpan.textContent = readableSize(value.size);
-        const deleteSpan = document.createElement('span');
-        deleteSpan.textContent = '🗑️';
-        deleteSpan.classList.add('delete');
+        
         deleteSpan.addEventListener('click', (event) => {
           confirmDialog.querySelector('span').textContent = 'file';
-          confirmDialog.querySelector('code').textContent = key;
-          confirmDialog.addEventListener(
-            'close',
-            (event) => {
+          confirmDialog.querySelector('code').textContent = event.target.parent.querySelector('span.file').textContent;
+          confirmDialog.addEventListener('close',(event) => {
               if (confirmDialog.returnValue === 'delete') {
                 browser.tabs.sendMessage(
                   browser.devtools.inspectedWindow.tabId,
-                  {
-                    message: 'deleteFile',
-                    data: value.relativePath,
-                  },
+                  { message: 'deleteFile', data: value.relativePath, },
                   (response) => {
                     if (response.error) {
                       errorDialog.querySelector('p').textContent =
@@ -130,12 +101,23 @@
           );
           confirmDialog.showModal();
         });
-        div.append(fileNameSpan, sizeSpan, deleteSpan);
+        
+        
       }
     }
   };
 
   const refreshTree = () => {
+    confirmDialog = extPanel.window.document.body.querySelector('.confirm-dialog');
+    errorDialog = extPanel.window.document.body.querySelector('.error-dialog');
+    main = extPanel.window.document.body.querySelector('main');
+    
+    if (!mainInnerHTML) {
+      mainInnerHTML = main.innerHTML;
+    }
+
+    lastLength = 0;
+
     browser.tabs.sendMessage(
       browser.devtools.inspectedWindow.tabId,
       { message: 'getDirectoryStructure' },
@@ -153,8 +135,10 @@
           main.innerHTML = mainEmptyHTML;
           return;
         }
-        const div = document.createElement('div');
-        createTreeHTML(response.structure, div);
+        const opfsDoc = createHTMLDocument('OPFS is fast so I AM');
+        opfsDoc.write('<div>')
+        const div = opfsDoc.body.firstChild;
+        createTreeHTML(response.structure, div, opfsDoc);
         main.innerHTML = '';
         main.append(div);
         main.addEventListener('keydown', (event) => {
@@ -176,17 +160,7 @@
     'panel.html',
     (panel) => {
       panel.onShown.addListener((extPanelWindow) => {
-        confirmDialog =
-          extPanelWindow.document.body.querySelector('.confirm-dialog');
-        errorDialog =
-          extPanelWindow.document.body.querySelector('.error-dialog');
-        main = extPanelWindow.document.body.querySelector('main');
-        if (!mainInnerHTML) {
-          mainInnerHTML = main.innerHTML;
-        }
-
-        lastLength = 0;
-
+        extPanel.window = extPanelWindow;
         refreshTree();
         interval = setInterval(refreshTree, 3000);
       });
