@@ -35,3 +35,34 @@ export const svg2png = () => `
 </script>
 </svg-to-png>
 `;
+
+export const createExtensionManifest = () => {
+// TODO: need to add svg or other image url import then convert to icons.
+// to much other work
+const manifest({
+  "name": "OPFS Explorer",
+  "description": "OPFS Explorer is a Chrome DevTools extension that allows you to explore the Origin Private File System (OPFS) of a web application.",
+  "version": "2.0-pre.0",
+  "manifest_version": 3,
+  "devtools_page": "devtools.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*/*",
+        "http://localhost/*",
+        "http://0.0.0.0/*",
+        "http://127.0.0.1/*"
+      ],
+      "run_at": "document_idle",
+      "js": ["contentscript.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "service_worker.js"
+  },
+  "icons": {
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+})
+}
