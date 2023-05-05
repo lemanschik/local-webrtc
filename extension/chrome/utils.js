@@ -1,24 +1,31 @@
 <!-- test data-->
-const scriptcontent = () =>{    
-
-    const svgElementToImageFormat = (svgElem,{format="png",name="result.png",width=64,height=64}={}) => {
-        // const uriData = `data:image/svg+xml;base64,${btoa(svgElem.outerHTML)}` // it may fail.
-        const uriData = `data:image/svg+xml;base64,${btoa(new XMLSerializer().serializeToString(svgElem))}`
-        const img = new Image()
-        img.src = uriData
-        img.onload = () => {
+const getDownloadAble = (imgEl,{
+    // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/imageSmoothingQuality
+    quality=1.0,format="png",name="result.png",width=64,height=64}={}) => {
+        if (image.complete && image.naturalHeight !== 0) {
             const canvas = document.createElement("canvas");
             [canvas.width, canvas.height] = width, height]
             const ctx = canvas.getContext("2d")
-            ctx.drawImage(img, 0, 0, width, height)
-            svgElem.insertAdjacentElement("afterend",canvas);
-            // 👇 downloadable
-            const quality = 1.0 // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/imageSmoothingQuality
-            svgElem.insertAdjacentHTML("afterend",`<pre>${canvas.toDataURL(`image/${format}`, quality)}</pre>`);
-            svgElem.insertAdjacentHTML("afterend",`<a href="${canvas.toDataURL(`image/${format}`, quality)}" download="${name}.${format}">Download as File</a>`);    
+            ctx.drawImage(imgEl, 0, 0, width, height);
+            return canvas.toDataURL(`image/${format}`, quality);
         }
+        throw new Error('imgEl.complete was false so it is not loaded or its naturalHeight is 0');
+}
+const svgElementToImageFormat = (svgElem,{quality=1.0,format="png",name="result.png",width=64,height=64}={}) => {
+    // const uriData = `data:image/svg+xml;base64,${btoa(svgElem.outerHTML)}` // it may fail.
+    const uriData = `data:image/svg+xml;base64,${btoa(new XMLSerializer().serializeToString(svgElem))}`
+    const img = new Image()
+    img.src = uriData
+    img.onload = () => {
+        const dataUrl = getDownloadAble(img,{quality,format,name,width,height});
+        svgElem.insertAdjacentHTML("afterend",`<pre>${dataUrl}</pre>`);
+        svgElem.insertAdjacentHTML("afterend",`<a href="${dataUrl}" download="${name}.${format}">Download as File</a>`);    
     }
-    
+    svgElem.insertAdjacentElement("afterend",img);
+}
+
+const scriptcontent = () =>{    
+
 };
 
 export const svg2png = () => `
@@ -29,12 +36,15 @@ export const svg2png = () => `
 </pre>
 
 
-
-
-
 <button title="download">svg2png</button>
 <script>
-  (${scriptContent})();
+  const getDownloadAble = ${getDownloadAble};
+  const svgElementToImageFormat = ${svgElementToImageFormat};
+  // Showing how to handle all kinds of values single and array with default parameters
+  // I am not sure why i demo this maybe because its usefull if you want a short api.
+  const commonIcons = ['48',['64'],'128',[256,256]].map(x=>[].concat(x)).map(([widht,height])=> ({quality,format,name,width,height: height || width }));
+  const dataUrl = getDownloadAble(document.querySelector('img'),{quality,format,name,width,height});
+  svgElem.insertAdjacentHTML("afterend",`<a href="${getDownloadAble(document.querySelector('img'),{quality,format,name,width,height})}" download="${name}.${format}">Download as File</a>`);    
 </script>
 </svg-to-png>
 `;
