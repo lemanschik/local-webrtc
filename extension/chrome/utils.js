@@ -24,9 +24,14 @@ const svgElementToImageFormat = (svgElem,{quality=1.0,format="png",name="result.
     svgElem.insertAdjacentElement("afterend",img);
 }
 
-const scriptcontent = () =>{    
-
-};
+const scriptcontent = () =>`const getDownloadAble = ${getDownloadAble};
+  const svgElementToImageFormat = ${svgElementToImageFormat};
+  // Showing how to handle all kinds of values single and array with default parameters
+  // I am not sure why i demo this maybe because its usefull if you want a short api.
+  const commonIcons = ['48',['64'],'128',[256,256]].map(x=>[].concat(x)).map(([widht,height])=> ({quality,format,name,width,height: height || width }));
+  const dataUrl = getDownloadAble(document.querySelector('img'),{quality,format,name,width,height});
+  svgElem.insertAdjacentHTML("afterend",\`<a href="\${getDownloadAble(document.querySelector('img'),{quality,format,name,width,height})}" download="\${name}.\${format}">Download as File</a>\`); 
+`;
 
 export const svg2png = () => `
 <svg-to-png>
@@ -38,13 +43,7 @@ export const svg2png = () => `
 
 <button title="download">svg2png</button>
 <script>
-  const getDownloadAble = ${getDownloadAble};
-  const svgElementToImageFormat = ${svgElementToImageFormat};
-  // Showing how to handle all kinds of values single and array with default parameters
-  // I am not sure why i demo this maybe because its usefull if you want a short api.
-  const commonIcons = ['48',['64'],'128',[256,256]].map(x=>[].concat(x)).map(([widht,height])=> ({quality,format,name,width,height: height || width }));
-  const dataUrl = getDownloadAble(document.querySelector('img'),{quality,format,name,width,height});
-  svgElem.insertAdjacentHTML("afterend",`<a href="${getDownloadAble(document.querySelector('img'),{quality,format,name,width,height})}" download="${name}.${format}">Download as File</a>`);    
+  ${scriptcontent}
 </script>
 </svg-to-png>
 `;
