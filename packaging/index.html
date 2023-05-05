@@ -1,0 +1,35 @@
+
+<pre>
+1. Created manifest file in a common location on the VM image:   C:\Temp\Update.xml
+File Contents:
+
+## windows
+C:\Temp\${appId}.xml
+<gupdate xmlns='http://www.google.com/update2/response' protocol='2.0'>
+  <app appid='${appId}'>
+    <updatecheck codebase='file:///C:/Temp/${appId}.crx' version='1.5.0' />
+  </app>
+</gupdate>
+
+2. Placed my CRX file in the location specified in the manifest XML (also C:\Temp\)
+
+3. Set the Group Policy setting to point to the Extension ID & manifest XML file:
+
+Computer Configuration\Policies\Administrative Templates\Google\Chome\Extensions
+     * Extension/App IDs and update URLs to be silently installed
+          = ${appId};file:///C:/Temp/${appId}.xml
+
+4. Update Group Policy on the virtual machine.
+
+## edge case installed manual before
+extension enabled NOT. since the extension was already installed (by 3rd party software) & 
+NOT enabled for all users by default, the Group policy setting doesn't enable it, 
+likely because it's already installed. It does however, prevent the uninstall of the addon.
+
+simply needed to deactivate the group policy setting, 
+uninstall the extension, then reactivate the group policy setting.  
+The extension then installs on chrome launch & is enabled and can not be uninstalled or disabled.
+
+## Linux & MacOS
+edite the profiles deployment defaults. 
+</pre>
