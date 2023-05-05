@@ -47,7 +47,7 @@
   new ReadableStream({ start: (c) => 
   browser.runtime.onMessage.addListener(
   (...args) => c.enqueue(args) || true) }).pipeTo(
-    new WritableStream({ async write(messages){
+    new WritableStream({ async write(message){
       const [request, sender, sendResponse] = message;
       const methods = {
         async getDirectoryStructure() {
