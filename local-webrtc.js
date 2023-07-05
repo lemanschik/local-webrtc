@@ -13,7 +13,7 @@ export const localWebRTC = async () => {
 };
 
 new ReadableStream({start(c){c.enqueue(new RTCPeerConnection(globalThis.crypto.randomUUID()))}})
-  .pipeThrough(new TransformStream({async transform(c,peerConnection){
+  .pipeThrough(new TransformStream({async transform(peerConnection, c){
   await peerConnection.setLocalDescription();
   const peerIdentity = getSessionDescription(peerConnection)[1];
   const broadcastChannel = new BroadcastChannel(peerIdentity);
